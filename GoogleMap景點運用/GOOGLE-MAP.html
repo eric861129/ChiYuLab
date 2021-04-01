@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <title>Attractions Map</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBcensY8YiJy3IJ5uaO0jLJao7st2SV-8Y&callback=initMap&libraries=&v=weekly"
+        defer></script>
+    <style type="text/css">
+        #map {
+            height: 100%;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .wrap {
+            display: flex;
+            flex-direction: row;
+            margin: auto;
+        }
+
+        #Region,
+        #Town {
+            width: 200px;
+            margin: 10px;
+        }
+
+        #Attraction {
+            width: 350px;
+            margin: 10px;
+        }
+
+        #btn {
+            width: 150px;
+            height: 48px;
+            margin: 10px;
+            border-radius: 30px;
+        }
+
+        .Name {
+            font-size: 30px;
+            text-align: center;
+            font-weight: 900;
+        }
+
+        .content {
+            padding: 2px;
+            font-size: 16px;
+            font-weight: 900;
+            line-height: 20px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="web">
+        <div class="wrap" id="wrap">
+            <select id="Region" class="form-select form-select-lg mb-3 " aria-label=".form-select-lg example">
+                <option selected>選取縣市</option>
+                <option value="臺北市">臺北市</option>
+                <option value="新北市">新北市</option>
+                <option value="桃園市">桃園市</option>
+                <option value="臺中市">臺中市</option>
+                <option value="臺南市">臺南市</option>
+                <option value="高雄市">高雄市</option>
+                <option value="基隆市">基隆市</option>
+                <option value="新竹市">新竹市</option>
+                <option value="嘉義市">嘉義市</option>
+                <option value="新竹縣">新竹縣</option>
+                <option value="苗栗縣">苗栗縣</option>
+                <option value="彰化縣">彰化縣</option>
+                <option value="南投縣">南投縣</option>
+                <option value="雲林縣">雲林縣</option>
+                <option value="嘉義縣">嘉義縣</option>
+                <option value="屏東縣">屏東縣</option>
+                <option value="宜蘭縣">宜蘭縣</option>
+                <option value="花蓮縣">花蓮縣</option>
+                <option value="臺東縣">臺東縣</option>
+                <option value="澎湖縣">澎湖縣</option>
+                <option value="金門縣">金門縣</option>
+                <option value="連江縣">連江縣</option>
+            </select>
+
+            <select id="Town" disabled class="form-select form-select-lg mb-3" aria-label=".form-select-sm example">
+                <option selected>選取鄉政市區</option>
+
+            </select>
+            <select id="Attraction" disabled class="form-select form-select-lg mb-3"
+                aria-label=".form-select-sm example">
+
+            </select>
+            <button id="btn" type="button" class="btn btn-primary">返回縣市</button>
+            <!-- <button id="btn" disabled type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#exampleModal">
+                查詢景點資訊
+            </button> -->
+        </div>
+    </div>
+    <!-- 
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="exampleModalLabel attractionName">1</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="Toldescribe">1</p>
+                    <p id="Add">1</p>
+                    <p id="Tel">1</p>
+                    <p id="Remarks">1</p>
+                    <p id="Ticketinfo">1</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="gogo">前往景點</button>
+                </div>
+            </div>
+        </div>
+    </div> -->
+
+    <div id="map"></div>
+
+
+
+    <script>
+        window.onload = () => {
+            getAttractionsJSON();
+            requestAreaJson();
+            initMap();
+            document.querySelector("#Region").addEventListener("change", findTown);
+            document.querySelector("#Town").addEventListener("change", findAttraction);
+            document.querySelector("#Attraction").addEventListener("change", gotoAttraction);
+            document.querySelector("#btn").addEventListener("click", findTown);
+            // document.querySelector("#gogo").addEventListener("click", gotoAttraction);
+            // document.querySelector("#map").addEventListener("click", modalcontent);
+        }
+        const url = "https://raw.githubusercontent.com/eric861129/BuildSchoolLab/main/TwArea.json";
+        let areaArray = [];
+        let AttractionsArray = [];
+        let AttractionsArrayNew = [];
+        let _area;
+        let item;
+        let Town = document.getElementById("Town");
+        let Attraction = document.getElementById("Attraction");
+        let modal = document.getElementById("exampleModal");
+        let wrap = document.getElementById("wrap");
+
+        let townArray = [];
+        let CountiesAttractionArray = [];
+        let texNode;
+        let CountiesLat;
+        let CountiesLng;
+        let pickcenterLat;
+        let pickcenterLng;
+        let AttractionLat;
+        let AttractionLng;
+        let AttractionName;
+        var marker;
+        var _pickAttraction;
+
+
+
+        // function modalcontent(card, item) {
+        //     wrap.querySelector(".btn").addEventListener("click", function () {
+        //         _pickAttraction = document.querySelector("#Attraction").value;
+        //         AttractionsArrayNew.forEach(x => {
+        //             if (_pickAttraction == x.Name) {
+        //                 modal.querySelector("h3").innerText = x.Name;
+        //                 modal.querySelector("#Toldescribe").innerText = `景點介紹: ${x.Toldescribe}`;
+        //                 modal.querySelector("#Add").innerText = `地址: ${x.Add}`;
+        //                 modal.querySelector("#Tel").innerText = `電話: ${x.Tel}`;
+        //                 modal.querySelector("#Remarks").innerText = `備註: ${x.Remarks}`;
+        //                 modal.querySelector("#Ticketinfo").innerText = `票價費用: ${x.Ticketinfo}`;
+        //                 pickcenterLat = x.AttractionLat;
+        //                 pickcenterLng = x.AttractionLng;
+        //             }
+        //         });
+        //     });
+        // }
+        function requestAreaJson() {
+            let xhr = new XMLHttpRequest();
+            xhr.onload = function () {
+                areaArray = JSON.parse(this.response);
+            }
+            xhr.open("GET", url);
+            xhr.send();
+        }
+        function findTown() {
+            Town.innerHTML = '<option selected>選取鄉政市區</option>';
+
+            _area = document.querySelector("#Region").value;
+            Attraction.innerHTML = `<option selected>${_area}的景點</option>`;
+            document.querySelector("#Town").disabled = null;
+            areaArray.forEach(x => {
+                if (x.Counties == _area) {
+                    townArray = x.township;
+                    CountiesLat = x.lat;
+                    CountiesLng = x.lng;
+                    townArray.forEach(item => {
+                        let newOption = document.createElement('option');
+                        texNode = document.createTextNode(item);
+                        newOption.appendChild(texNode);
+                        Town.appendChild(newOption);
+                    });
+                }
+            });
+            pickCountiesMap();
+            findCountiesAttraction();
+        }
+        function pickCountiesMap() {
+            const pickCenterLatLng = { lat: CountiesLat, lng: CountiesLng };
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12,
+                center: pickCenterLatLng,
+
+            });
+            AttractionsArrayNew.forEach(x => {
+                if (_area == x.Region) {
+                    var AttractionsLatLng = new google.maps.LatLng(x.AttractionLat, x.AttractionLng);
+
+                    marker = new google.maps.Marker({
+                        position: AttractionsLatLng,
+                        title: x.Name,
+                    });
+
+                    marker.setMap(map);
+
+                    let infowindow = new google.maps.InfoWindow({
+                        content:
+                            `<div class="content">` +
+                            `<h3 class=" Name">${x.Name}</h3>` +
+                            `<p id="Toldescribe"> 景點介紹: ${x.Toldescribe}</p>` +
+                            `<p id="Add"> 地址: ${x.Add}</p>` +
+                            `<p id="Tel"> 電話: ${x.Tel}</p>` +
+                            `<p id="Remarks"> 備註: ${x.Remarks}</p>` +
+                            `<p id="Ticketinfo"> 售票費用: ${x.Ticketinfo}</p>` +
+                            `</div>` // 支援html
+                    });
+                    // 監聽 marker click 事件
+                    
+                    marker.addListener('click', e => {
+                        infowindow.open(this.map, marker);
+                    });
+                    map.addListener('click', e => {
+                        infowindow.close(this.map, marker);
+                    });
+                }
+
+            });
+        }
+        function findCountiesAttraction() {
+            document.querySelector("#Attraction").disabled = null;
+            AttractionsArrayNew.forEach(x => {
+                if (_area == x.Region) {
+                    let newOption = document.createElement('option');
+                    texNode = document.createTextNode(x.Name);
+                    newOption.appendChild(texNode);
+                    Attraction.appendChild(newOption);
+                }
+            });
+        }
+        function findAttraction() {
+            var _att = document.querySelector("#Town").value;
+            document.querySelector("#Attraction").disabled = null;
+            Attraction.innerHTML = `<option selected>${_att}的景點</option>`;
+            AttractionsArrayNew.forEach(x => {
+                if (_area == x.Region && _att == x.Town) {
+                    let newOption = document.createElement('option');
+                    texNode = document.createTextNode(x.Name);
+                    newOption.appendChild(texNode);
+                    Attraction.appendChild(newOption);
+                }
+            });
+        }
+        // function openbtn() {
+        //     document.querySelector("#btn").disabled = null;
+        //     modalcontent();
+        // }
+        function getAttractionsJSON() {
+            let xhr = new XMLHttpRequest();
+            xhr.onload = function () {
+                AttractionsArray = JSON.parse(this.response);
+                TransformData(AttractionsArray);
+            };
+            xhr.open("GET", "https://raw.githubusercontent.com/eric861129/BuildSchoolLab/main/attraction.json");
+            xhr.send();
+        };
+        function gotoAttraction() {
+            _pickAttraction = document.querySelector("#Attraction").value;
+            AttractionsArrayNew.forEach(x => {
+                if (_pickAttraction == x.Name) {
+                    pickcenterLat = x.AttractionLat;
+                    pickcenterLng = x.AttractionLng;
+                }
+            });
+            const pickCenterLatLng = { lat: pickcenterLat, lng: pickcenterLng };
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 19,
+                center: pickCenterLatLng,
+            });
+            AttractionsArrayNew.forEach(x => {
+                if (_pickAttraction == x.Name) {
+                    var AttractionsLatLng = new google.maps.LatLng(x.AttractionLat, x.AttractionLng);
+
+                    marker = new google.maps.Marker({
+                        position: AttractionsLatLng,
+                        title: x.Name
+                    });
+                    marker.setMap(map);
+                    let infowindow = new google.maps.InfoWindow({
+                        content:
+                            `<div class="content">` +
+                            `<h3 class="Name">${x.Name}</h3>` +
+                            `<p id="Toldescribe">景點介紹: ${x.Toldescribe}</p>` +
+                            `<p id="Add">地址: ${x.Add}</p>` +
+                            `<p id="Tel">電話: ${x.Tel}</p>` +
+                            `<p id="Remarks">備註: ${x.Remarks}</p>` +
+                            `<p id="Ticketinfo">售票費用: ${x.Ticketinfo}</p>` +
+                            `</div>` // 支援html
+                    });
+
+                    // 監聽 marker click 事件
+                    marker.addListener('click', e => {
+                        infowindow.open(this.map, marker);
+                    });
+                    map.addListener('click', e => {
+                        infowindow.close(this.map, marker);
+                    });
+
+                }
+
+            });
+        }
+        function TransformData(dataArray) {
+            dataArray.forEach(item => {
+                let Name = item.Name;
+                let Toldescribe = item.Toldescribe;
+                let Tel = item.Tel;
+                let Add = item.Add;
+                let Region = item.Region;
+                let Town = item.Town;
+                let AttractionLng = item.Px;
+                let AttractionLat = item.Py;
+                let Remarks = item.Remarks;
+                let Ticketinfo = item.Ticketinfo;
+                let obj = {
+                    Name: Name,
+                    Toldescribe: Toldescribe,
+                    Tel: Tel,
+                    Add: Add,
+                    Region: Region,
+                    Town: Town,
+                    AttractionLng: AttractionLng,
+                    AttractionLat: AttractionLat,
+                    Remarks: Remarks,
+                    Ticketinfo: Ticketinfo
+                };
+                AttractionsArrayNew.push(obj)
+            });
+        }
+        function initMap() {
+            const centerLatLng = { lat: 23.974501759372835, lng: 120.97995703070175 };
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 8,
+                center: centerLatLng,
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"
+        integrity="sha384-q2kxQ16AaE6UbzuKqyBE9/u/KzioAlnx2maXQHiDX9d4/zp8Ok3f+M7DPm+Ib6IU"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.min.js"
+        integrity="sha384-pQQkAEnwaBkjpqZ8RU1fF1AKtTcHJwFl3pblpTlHXybJjHpMYo79HY3hIi4NKxyj"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
